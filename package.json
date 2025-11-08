@@ -1,0 +1,18 @@
+{
+  "name": "thresholdvault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ThresholdVault full-stack workspace (PWA + ICP canisters).",
+  "scripts": {
+    "dev": "npm --prefix pwa run dev",
+    "build": "npm --prefix pwa run build",
+    "start": "npm --prefix pwa run start",
+    "lint": "npm --prefix pwa run lint",
+    "test": "npm --prefix pwa run test",
+    "format": "npm --prefix pwa run format",
+    "cypress": "npm --prefix pwa run cypress",
+    "dfx:deploy": "dfx deploy",
+    "dfx:generate": "dfx generate",
+    "dfx:test": "dfx test"
+  }
+}

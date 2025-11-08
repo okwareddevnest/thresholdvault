@@ -1,0 +1,10 @@
+.dfx
+node_modules
+pwa/.next
+pwa/node_modules
+pwa/out
+target
+dist
+coverage
+cypress/videos
+cypress/screenshots

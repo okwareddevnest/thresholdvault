@@ -1,0 +1,8 @@
+service : {
+  register_vault : (record {
+    vault_id : nat64;
+    owner : principal;
+    next_due : int;
+    interval_ns : nat64;
+  }) -> ();
+}

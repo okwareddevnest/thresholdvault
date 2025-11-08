@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "canisters/guardian_mgr",
+    "canisters/bitcoin_wallet"
+]
+resolver = "2"

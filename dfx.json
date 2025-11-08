@@ -1,0 +1,55 @@
+{
+  "dfx": "0.20.1",
+  "version": 1,
+  "canisters": {
+    "vault_mgr": {
+      "type": "motoko",
+      "main": "canisters/vault_mgr/src/VaultMgr.mo",
+      "candid": "canisters/vault_mgr/src/VaultMgr.did",
+      "dependencies": [
+        "guardian_mgr",
+        "bitcoin_wallet",
+        "heartbeat_tracker"
+      ]
+    },
+    "heartbeat_tracker": {
+      "type": "motoko",
+      "main": "canisters/heartbeat_tracker/src/HeartbeatTracker.mo",
+      "candid": "canisters/heartbeat_tracker/src/HeartbeatTracker.did"
+    },
+    "guardian_mgr": {
+      "type": "rust",
+      "package": "guardian_mgr",
+      "candid": "canisters/guardian_mgr/src/guardian_mgr.did"
+    },
+    "bitcoin_wallet": {
+      "type": "rust",
+      "package": "bitcoin_wallet",
+      "candid": "canisters/bitcoin_wallet/src/bitcoin_wallet.did"
+    },
+    "pwa_frontend": {
+      "type": "assets",
+      "source": [
+        "pwa/out"
+      ]
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": ""
+    },
+    "start": {
+      "address": "127.0.0.1",
+      "port": 4943
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    },
+    "ic": {
+      "providers": ["https://ic0.app"]
+    }
+  }
+}

@@ -1,0 +1,40 @@
+type VaultId = nat64;
+type GuardianStatus = variant { Invited; Accepted; ShareSubmitted };
+type GuardianRecord = record { emailHash : blob; alias : text; status : GuardianStatus; principal : opt principal };
+type HeirRecord = record { address : text; weightBps : nat };
+type HeartbeatConfig = record { intervalDays : nat; allowedMisses : nat };
+type VaultStatus = variant { Deployed; Active; InheritancePending; Executed };
+type VaultSummary = record {
+  id : VaultId;
+  name : text;
+  status : VaultStatus;
+  bitcoinAddress : text;
+  guardianCount : nat;
+  guardianThreshold : nat;
+  heartbeatDueInSeconds : int;
+};
+type VaultStatusResponse = record {
+  summary : VaultSummary;
+  lastHeartbeat : int;
+  missedHeartbeats : nat;
+  heirs : vec HeirRecord;
+  guardians : vec GuardianRecord;
+};
+type CreateVaultRequest = record {
+  name : text;
+  guardians : vec record { email : text; alias : text };
+  heirRecords : vec HeirRecord;
+  guardianThreshold : nat;
+  heartbeat : HeartbeatConfig;
+};
+type ExecuteInheritanceResponse = record { txId : text; broadcastAt : int };
+service : {
+  create_vault : (CreateVaultRequest) -> (VaultSummary);
+  submit_heartbeat : (VaultId) -> (VaultSummary);
+  get_vault_status : (VaultId) -> (VaultStatusResponse);
+  request_inheritance : (VaultId) -> (VaultSummary);
+  heartbeat_missed : (VaultId) -> (VaultSummary);
+  execute_inheritance : (VaultId) -> (ExecuteInheritanceResponse);
+  reset_missed_heartbeats : (VaultId) -> (VaultSummary);
+  list_vaults : (principal) -> (vec VaultSummary) query;
+}
