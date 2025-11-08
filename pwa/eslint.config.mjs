@@ -1,4 +1,3 @@
-import jsxA11y from "eslint-plugin-jsx-a11y";
 import tailwind from "eslint-plugin-tailwindcss";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
@@ -10,7 +9,6 @@ const eslintConfig = defineConfig([
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {
     plugins: {
-      "jsx-a11y": jsxA11y,
       tailwindcss: tailwind,
     },
     rules: {

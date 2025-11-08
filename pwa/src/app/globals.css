@@ -30,6 +30,30 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+@keyframes heartbeat-pulse {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes heartbeat-pulse-fast {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--color-bitcoin-gold);
   outline-offset: 2px;
