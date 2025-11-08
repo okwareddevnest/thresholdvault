@@ -1,7 +1,8 @@
 import { IDL } from "@dfinity/candid";
 import type { HeirRecord } from "@/types/vault";
 
-export const idlFactory = ({ IDL: I }: { IDL: typeof IDL }) => {
+export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
+  const I = IDL;
   const HeirRecordIdl = I.Record({
     address: I.Text,
     weightBps: I.Nat64,

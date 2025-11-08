@@ -56,19 +56,12 @@ const withPWA = nextPWA({
   skipWaiting: false,
   buildExcludes: [/middleware-manifest\.json$/],
   publicExcludes: ["!icons/*"],
-  workboxOptions: {
-    clientsClaim: true,
-    cleanupOutdatedCaches: true,
-  },
 });
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   output: "export",
-  experimental: {
-    instrumentationHook: true,
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: true,

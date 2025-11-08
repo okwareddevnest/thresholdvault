@@ -1,7 +1,8 @@
 import { IDL } from "@dfinity/candid";
 import type { GuardianRecord, GuardianSubmissionResult } from "@/types/vault";
 
-export const idlFactory = ({ IDL: I }: { IDL: typeof IDL }) => {
+export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
+  const I = IDL;
   const GuardianStatusIdl = I.Variant({
     Invited: I.Null,
     Accepted: I.Null,

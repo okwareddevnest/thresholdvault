@@ -8,7 +8,8 @@ import type {
   VaultSummary,
 } from "@/types/vault";
 
-export const idlFactory = ({ IDL: I }: { IDL: typeof IDL }) => {
+export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
+  const I = IDL;
   const VaultId = I.Nat64;
   const GuardianStatus = I.Variant({
     Invited: I.Null,

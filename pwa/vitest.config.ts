@@ -8,10 +8,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      lines: 0.9,
-      statements: 0.9,
-      branches: 0.85,
-      functions: 0.9,
+      thresholds: {
+        lines: 0.9,
+        statements: 0.9,
+        branches: 0.85,
+        functions: 0.9,
+      },
     },
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },

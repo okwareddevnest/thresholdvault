@@ -4,7 +4,7 @@ export type VaultStatus = "Deployed" | "Active" | "InheritancePending" | "Execut
 
 export interface HeirRecord {
   address: string;
-  weightBps: number;
+  weightBps: number | bigint;
 }
 
 export interface HeartbeatConfig {
@@ -48,4 +48,9 @@ export interface CreateVaultPayload {
   heirRecords: HeirRecord[];
   guardianThreshold: number;
   heartbeat: HeartbeatConfig;
+}
+
+export interface ExecuteInheritanceResponse {
+  txId: string;
+  broadcastAt: bigint;
 }

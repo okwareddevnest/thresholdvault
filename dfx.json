@@ -1,5 +1,5 @@
 {
-  "dfx": "0.20.1",
+  "dfx": "0.29.1",
   "version": 1,
   "canisters": {
     "vault_mgr": {
