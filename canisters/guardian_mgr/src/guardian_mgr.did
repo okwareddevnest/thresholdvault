@@ -1,0 +1,58 @@
+type VaultId = nat64;
+type PrincipalOpt = opt principal;
+
+type GuardianStatus = variant { Invited; Accepted; ShareSubmitted };
+
+type GuardianRecord = record {
+  emailHash : blob;
+  alias : text;
+  status : GuardianStatus;
+  principal : PrincipalOpt;
+};
+
+type GuardianRegistration = record {
+  email : text;
+  alias : text;
+};
+
+type RegisterGuardiansArgs = record {
+  vaultId : VaultId;
+  owner : principal;
+  threshold : nat64;
+  keyId : text;
+  invites : vec GuardianRegistration;
+};
+
+type AcceptGuardianArgs = record {
+  vaultId : VaultId;
+  emailHash : blob;
+};
+
+type SubmitShareArgs = record {
+  vaultId : VaultId;
+  emailHash : blob;
+  sharePayload : blob;
+};
+
+type GuardianSubmissionResult = record {
+  submitted : nat64;
+  thresholdMet : bool;
+};
+
+type ShareSubmissionReceipt = record {
+  vaultId : VaultId;
+  submittedAt : nat64;
+  remainingRequired : int64;
+};
+
+type ResultGuardian = variant { ok : GuardianRecord; err : text };
+type ResultReceipt = variant { ok : ShareSubmissionReceipt; err : text };
+
+service : {
+  register_guardians : (RegisterGuardiansArgs) -> (vec GuardianRecord);
+  accept_invitation : (AcceptGuardianArgs) -> (ResultGuardian);
+  submit_guardian_share : (SubmitShareArgs) -> (ResultReceipt);
+  guardian_threshold_status : (VaultId) -> (GuardianSubmissionResult);
+  list_guardians : (VaultId) -> (vec GuardianRecord) query;
+  guardian_by_hash : (AcceptGuardianArgs) -> (opt GuardianRecord) query;
+}

@@ -1,0 +1,33 @@
+type VaultId = nat64;
+
+type GenerateVaultAddressArgs = record {
+  vaultId : VaultId;
+  keyId : text;
+};
+
+type BitcoinAddressResponse = record {
+  address : text;
+  keyId : text;
+};
+
+type HeirRecord = record {
+  address : text;
+  weightBps : nat64;
+};
+
+type ExecuteInheritanceArgs = record {
+  vaultId : VaultId;
+  keyId : text;
+  heirs : vec HeirRecord;
+  guardian_submissions : nat64;
+};
+
+type ExecuteInheritanceResponse = record {
+  txId : text;
+};
+
+service : {
+  generate_vault_address : (GenerateVaultAddressArgs) -> (BitcoinAddressResponse);
+  execute_inheritance : (ExecuteInheritanceArgs) -> (ExecuteInheritanceResponse);
+  wallet_view : (VaultId) -> (opt BitcoinAddressResponse) query;
+}
