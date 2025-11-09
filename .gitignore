@@ -4,6 +4,7 @@ pwa/.next
 pwa/node_modules
 pwa/out
 target
+.toolchain
 dist
 coverage
 cypress/videos

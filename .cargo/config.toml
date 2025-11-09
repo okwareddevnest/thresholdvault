@@ -1,0 +1,6 @@
+[env]
+CC_wasm32_unknown_unknown = "/home/okware/hackathons/ThresholdVault/scripts/wasm-clang.sh"
+CXX_wasm32_unknown_unknown = "/home/okware/hackathons/ThresholdVault/scripts/wasm-clang.sh"
+AR_wasm32_unknown_unknown = "/home/okware/hackathons/ThresholdVault/scripts/wasm-ar.sh"
+RANLIB_wasm32_unknown_unknown = "/home/okware/hackathons/ThresholdVault/scripts/wasm-ranlib.sh"
+CFLAGS_wasm32_unknown_unknown = "-I/home/okware/hackathons/ThresholdVault/toolchains/include"

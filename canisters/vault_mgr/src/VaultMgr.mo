@@ -1,122 +1,50 @@
 import Array "mo:base/Array";
-import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
-import Int "mo:base/Int";
+import Int64 "mo:base/Int64";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
-import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Trie "mo:base/Trie";
+import Types "./Types";
 
-module {
-  public type VaultId = Nat64;
-  public type GuardianThreshold = Nat;
-  public type HeartbeatConfig = { intervalDays : Nat; allowedMisses : Nat };
-  public type HeirRecord = { address : Text; weightBps : Nat };
-
-  public type VaultStatus = {
-    #Deployed;
-    #Active;
-    #InheritancePending;
-    #Executed;
-  };
-
-  public type GuardianRecord = {
-    emailHash : Blob;
-    alias : Text;
-    status : GuardianStatus;
-    principal : ?Principal;
-  };
-
-  public type GuardianStatus = { #Invited; #Accepted; #ShareSubmitted };
-
-  public type Vault = {
-    id : VaultId;
-    name : Text;
-    owner : Principal;
-    keyId : Text;
-    bitcoinAddress : Text;
-    guardians : [GuardianRecord];
-    guardianThreshold : GuardianThreshold;
-    heirs : [HeirRecord];
-    heartbeat : HeartbeatConfig;
-    lastHeartbeat : Int;
-    missedHeartbeats : Nat;
-    status : VaultStatus;
-    pendingTxId : ?Text;
-    createdAt : Int;
-  };
-
-  public type CreateVaultRequest = {
-    name : Text;
-    guardians : [GuardianInvite];
-    heirRecords : [HeirRecord];
-    guardianThreshold : GuardianThreshold;
-    heartbeat : HeartbeatConfig;
-  };
-
-  public type GuardianInvite = { email : Text; alias : Text };
-
-  public type VaultSummary = {
-    id : VaultId;
-    name : Text;
-    status : VaultStatus;
-    bitcoinAddress : Text;
-    guardianCount : Nat;
-    guardianThreshold : GuardianThreshold;
-    heartbeatDueInSeconds : Int;
-  };
-
-  public type VaultStatusResponse = {
-    summary : VaultSummary;
-    lastHeartbeat : Int;
-    missedHeartbeats : Nat;
-    heirs : [HeirRecord];
-    guardians : [GuardianRecord];
-  };
-
-  public type HeartbeatRegistration = {
-    vaultId : VaultId;
-    nextDue : Int;
-    intervalNs : Nat64;
-  };
-
-  public type GuardianSubmissionResult = {
-    submitted : Nat;
-    thresholdMet : Bool;
-  };
-
-  public type BitcoinAddressResponse = {
-    address : Text;
-    keyId : Text;
-  };
-
-  public type ExecuteInheritanceResponse = {
-    txId : Text;
-    broadcastAt : Int;
-  };
-
-  public type VaultMgrActor = actor class VaultMgr(
+persistent actor class VaultMgr(
     guardianMgr : Principal,
     bitcoinWallet : Principal,
     heartbeatTracker : Principal,
     admin : Principal,
   ) = this {
-    stable var vaultSequence : Nat64 = 1;
-    stable var vaults : Trie.Trie<VaultId, Vault> = Trie.empty();
+    type VaultId = Types.VaultId;
+    type GuardianThreshold = Types.GuardianThreshold;
+    type HeartbeatConfig = Types.HeartbeatConfig;
+    type HeirRecord = Types.HeirRecord;
+    type VaultStatus = Types.VaultStatus;
+    type GuardianRecord = Types.GuardianRecord;
+    type GuardianStatus = Types.GuardianStatus;
+    type Vault = Types.Vault;
+    type CreateVaultRequest = Types.CreateVaultRequest;
+    type GuardianInvite = Types.GuardianInvite;
+    type VaultSummary = Types.VaultSummary;
+    type VaultStatusResponse = Types.VaultStatusResponse;
+    type GuardianSubmissionResult = Types.GuardianSubmissionResult;
+    type BitcoinAddressResponse = Types.BitcoinAddressResponse;
+    type ExecuteInheritanceResponse = Types.ExecuteInheritanceResponse;
+    type GuardianRegistration = Types.GuardianRegistration;
+    type GuardianService = Types.GuardianService;
+    type BitcoinWalletService = Types.BitcoinWalletService;
+    type HeartbeatService = Types.HeartbeatService;
+    var vaultSequence : Nat64 = 1;
+    var vaults : Trie.Trie<VaultId, Vault> = Trie.empty();
 
     private func vaultKey(id : VaultId) : Trie.Key<VaultId> = {
-      hash = Nat64.toNat(id);
+      hash = Nat32.fromNat(Nat64.toNat(id));
       key = id;
     };
 
     private func nat64Eq(x : Nat64, y : Nat64) : Bool = x == y;
-    private func nat64Hash(x : Nat64) : Nat32 = Nat32.fromNat(Nat64.toNat(x));
-
     private func ensureCallerIsOwner(caller : Principal, vault : Vault) {
       if (caller != vault.owner) {
         Debug.trap("UNAUTHORIZED_OWNER_CALL");
@@ -178,9 +106,11 @@ module {
       "thresholdvault_" # Nat64.toText(id);
     };
 
-    private func nextDue(lastHeartbeat : Int, config : HeartbeatConfig) : Int {
-      lastHeartbeat + Int.fromNat(config.intervalDays) * 86_400;
-    };
+    private func natToInt(n : Nat) : Int =
+      Int64.toInt(Int64.fromNat64(Nat64.fromNat(n)));
+
+    private func nextDue(lastHeartbeat : Int, config : HeartbeatConfig) : Int =
+      lastHeartbeat + natToInt(config.intervalDays) * 86_400;
 
     private func intervalNs(config : HeartbeatConfig) : Nat64 {
       Nat64.fromNat(config.intervalDays) * 86_400_000_000_000;
@@ -199,11 +129,11 @@ module {
     };
 
     private func storeVault(vault : Vault) {
-      vaults := Trie.put(vaults, nat64Eq, nat64Hash, vaultKey(vault.id), vault).0;
+      vaults := Trie.put(vaults, vaultKey(vault.id), nat64Eq, vault).0;
     };
 
     private func readVault(id : VaultId) : Vault {
-      switch (Trie.find(vaults, nat64Eq, nat64Hash, vaultKey(id))) {
+      switch (Trie.find(vaults, vaultKey(id), nat64Eq)) {
         case (?vault) vault;
         case null Debug.trap("VAULT_NOT_FOUND");
       };
@@ -393,50 +323,11 @@ module {
 
     public query func list_vaults(owner : Principal) : async [VaultSummary] {
       let buffer = Buffer.Buffer<VaultSummary>(0);
-      Trie.iter(vaults, func(_k : VaultId, vault : Vault) {
+      for ((_, vault) in Trie.iter(vaults)) {
         if (vault.owner == owner) {
           buffer.add(summarize(vault));
         };
-      });
+      };
       Buffer.toArray(buffer);
     };
   };
-
-  public type GuardianRegistration = {
-    email : Text;
-    alias : Text;
-  };
-
-  public type GuardianService = actor {
-    register_guardians : ({
-      vault_id : VaultId;
-      owner : Principal;
-      invites : [GuardianRegistration];
-      threshold : Nat;
-      key_id : Text;
-    }) -> async [GuardianRecord];
-    guardian_threshold_status : (VaultId) -> async GuardianSubmissionResult;
-  };
-
-  public type BitcoinWalletService = actor {
-    generate_vault_address : ({
-      vault_id : VaultId;
-      key_id : Text;
-    }) -> async BitcoinAddressResponse;
-    execute_inheritance : ({
-      vault_id : VaultId;
-      key_id : Text;
-      heirs : [HeirRecord];
-      guardian_submissions : Nat;
-    }) -> async { txId : Text };
-  };
-
-  public type HeartbeatService = actor {
-    register_vault : ({
-      vault_id : VaultId;
-      owner : Principal;
-      next_due : Int;
-      interval_ns : Nat64;
-    }) -> async ();
-  };
-};

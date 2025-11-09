@@ -4,8 +4,7 @@ use ic_cdk::management_canister::{raw_rand, VetKDCurve, VetKDDeriveKeyArgs, VetK
 use ic_cdk::storage;
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query, update};
 use ic_vetkeys::{DerivedKeyMaterial, DerivedPublicKey, EncryptedVetKey, TransportSecretKey, VetKey};
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
@@ -22,6 +21,17 @@ const SHARE_ENCRYPTION_DOMAIN: &str = "thresholdvault.share";
 const RNG_DOMAIN: &[u8] = b"thresholdvault.guardian.rng";
 const VETKEY_NAME: &str = "key_1";
 const MAX_SHARE_BYTES: usize = 4096;
+
+#[cfg(target_arch = "wasm32")]
+mod wasm_rand_shim {
+    use getrandom::Error;
+
+    getrandom::register_custom_getrandom!(unavailable);
+
+    fn unavailable(_dest: &mut [u8]) -> Result<(), Error> {
+        Err(Error::UNSUPPORTED)
+    }
+}
 
 thread_local! {
     static STATE: RefCell<GuardianManagerState> = RefCell::new(GuardianManagerState::default());
@@ -47,7 +57,7 @@ struct GuardianEntry {
     email_hash: Vec<u8>,
     alias: String,
     status: GuardianStatus,
-    principal: Option<Principal>,
+    principal_id: Option<Principal>,
     encrypted_share: Option<Vec<u8>>,
     submitted_at: Option<u64>,
     updated_at: u64,
@@ -73,7 +83,8 @@ pub struct GuardianRecord {
     pub email_hash: Vec<u8>,
     pub alias: String,
     pub status: GuardianStatus,
-    pub principal: Option<Principal>,
+    #[serde(rename = "principalId")]
+    pub principal_id: Option<Principal>,
 }
 
 #[derive(CandidType, Deserialize)]
@@ -201,7 +212,7 @@ async fn register_guardians(args: RegisterGuardiansArgs) -> Vec<GuardianRecord> 
             email_hash: hash_email(&invite.email),
             alias: invite.alias.trim().to_string(),
             status: GuardianStatus::Invited,
-            principal: None,
+            principal_id: None,
             encrypted_share: None,
             submitted_at: None,
             updated_at: timestamp,
@@ -243,12 +254,12 @@ async fn accept_invitation(args: AcceptGuardianArgs) -> Result<GuardianRecord, S
             .iter_mut()
             .find(|g| g.email_hash == args.email_hash)
             .ok_or(GuardianError::GuardianNotFound)?;
-        if let Some(existing) = guardian.principal {
+        if let Some(existing) = guardian.principal_id {
             if existing != caller {
                 return Err(GuardianError::PrincipalMismatch);
             }
         }
-        guardian.principal = Some(caller);
+        guardian.principal_id = Some(caller);
         guardian.status = GuardianStatus::Accepted;
         guardian.updated_at = time();
         vault.updated_at = guardian.updated_at;
@@ -268,7 +279,7 @@ async fn submit_guardian_share(args: SubmitShareArgs) -> Result<ShareSubmissionR
     }
 
     let snapshot = snapshot_guardian(args.vault_id, &args.email_hash)?;
-    if snapshot.guardian.principal != Some(caller) {
+    if snapshot.guardian.principal_id != Some(caller) {
         return Err(GuardianError::Unauthorized(caller).into());
     }
     if snapshot.guardian.status != GuardianStatus::Accepted {
@@ -373,7 +384,7 @@ fn guardian_record(entry: &GuardianEntry) -> GuardianRecord {
         email_hash: entry.email_hash.clone(),
         alias: entry.alias.clone(),
         status: entry.status.clone(),
-        principal: entry.principal,
+        principal_id: entry.principal_id,
     }
 }
 
@@ -468,7 +479,7 @@ fn guardian_input(vault_id: VaultId, guardian: &GuardianEntry) -> Vec<u8> {
     let mut preimage = Vec::with_capacity(guardian.email_hash.len() + 32);
     preimage.extend_from_slice(&vault_id.to_be_bytes());
     preimage.extend_from_slice(&guardian.email_hash);
-    if let Some(principal) = guardian.principal {
+    if let Some(principal) = guardian.principal_id {
         preimage.extend_from_slice(principal.as_slice());
     }
     Sha256::digest(&preimage).to_vec()
@@ -482,7 +493,7 @@ fn derive_transport_secret(
     material.extend_from_slice(VETKEY_TRANSPORT_DOMAIN);
     material.extend_from_slice(&guardian.email_hash);
     material.extend_from_slice(&vault_id.to_be_bytes());
-    if let Some(principal) = guardian.principal {
+    if let Some(principal) = guardian.principal_id {
         material.extend_from_slice(principal.as_slice());
     }
     let digest = Sha256::digest(&material);

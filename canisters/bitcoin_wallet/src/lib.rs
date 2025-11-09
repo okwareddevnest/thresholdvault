@@ -37,6 +37,17 @@ thread_local! {
     static STATE: RefCell<VaultWalletState> = RefCell::new(VaultWalletState::default());
 }
 
+#[cfg(target_arch = "wasm32")]
+mod wasm_rand_shim {
+    use getrandom::Error;
+
+    getrandom::register_custom_getrandom!(unavailable);
+
+    fn unavailable(_dest: &mut [u8]) -> Result<(), Error> {
+        Err(Error::UNSUPPORTED)
+    }
+}
+
 #[derive(Default, Clone, CandidType, Deserialize, Serialize)]
 struct VaultWalletState {
     wallets: BTreeMap<VaultId, VaultWallet>,

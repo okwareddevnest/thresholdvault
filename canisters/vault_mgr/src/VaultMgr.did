@@ -1,6 +1,6 @@
 type VaultId = nat64;
 type GuardianStatus = variant { Invited; Accepted; ShareSubmitted };
-type GuardianRecord = record { emailHash : blob; alias : text; status : GuardianStatus; principal : opt principal };
+type GuardianRecord = record { emailHash : blob; alias : text; status : GuardianStatus; principalId : opt principal };
 type HeirRecord = record { address : text; weightBps : nat };
 type HeartbeatConfig = record { intervalDays : nat; allowedMisses : nat };
 type VaultStatus = variant { Deployed; Active; InheritancePending; Executed };

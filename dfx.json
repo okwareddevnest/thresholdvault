@@ -10,12 +10,14 @@
         "guardian_mgr",
         "bitcoin_wallet",
         "heartbeat_tracker"
-      ]
+      ],
+      "arguments": "(principal \\\"${guardian_mgr}\\\", principal \\\"${bitcoin_wallet}\\\", principal \\\"${heartbeat_tracker}\\\", principal \\\"${dfx-identity-principal}\\\")"
     },
     "heartbeat_tracker": {
       "type": "motoko",
       "main": "canisters/heartbeat_tracker/src/HeartbeatTracker.mo",
-      "candid": "canisters/heartbeat_tracker/src/HeartbeatTracker.did"
+      "candid": "canisters/heartbeat_tracker/src/HeartbeatTracker.did",
+      "arguments": "(principal \\\"${vault_mgr}\\\")"
     },
     "guardian_mgr": {
       "type": "rust",

@@ -129,10 +129,12 @@ version = "0.1.0"
 dependencies = [
  "bitcoin",
  "candid",
+ "getrandom",
  "ic-cdk",
  "ic-cdk-macros",
  "serde",
  "serde_bytes",
+ "sha2",
  "thiserror 1.0.69",
 ]
 
@@ -466,10 +468,10 @@ name = "guardian_mgr"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "getrandom",
  "ic-cdk",
  "ic-cdk-macros",
  "ic-vetkeys",
- "rand",
  "rand_chacha",
  "serde",
  "serde_bytes",

@@ -16,7 +16,7 @@ export interface GuardianRecord {
   emailHash: Uint8Array | number[];
   alias: string;
   status: GuardianStatus;
-  principal: string | null;
+  principalId: string | null;
 }
 
 export interface VaultSummary {
