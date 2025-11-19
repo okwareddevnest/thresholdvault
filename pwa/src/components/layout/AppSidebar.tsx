@@ -28,6 +28,8 @@ type Props = {
   onAuthenticate: () => void;
   onCreateVault: () => void;
   metrics: VaultMetrics;
+  activeTab?: string;
+  onNavigate?: (id: string) => void;
 };
 
 export function AppSidebar({
@@ -37,6 +39,8 @@ export function AppSidebar({
   onAuthenticate,
   onCreateVault,
   metrics,
+  activeTab = "dashboard",
+  onNavigate,
 }: Props) {
   const vaults = useVaultStore((state) => state.vaults);
   const guardianAverage = useMemo(() => {
@@ -65,11 +69,12 @@ export function AppSidebar({
           <div className="mt-4 space-y-2">
             {navItems.map((item, idx) => {
               const Icon = item.icon;
-              const isActive = idx === 0;
+              const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   type="button"
+                  onClick={() => onNavigate?.(item.id)}
                   className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-0 ${
                     isActive
                       ? "border-icp-cyan/50 bg-card-background"

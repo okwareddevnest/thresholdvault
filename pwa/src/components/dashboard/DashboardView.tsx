@@ -13,6 +13,9 @@ import { useAuthClient } from "@/hooks/useAuthClient";
 import { useVaultData } from "@/hooks/useVaultData";
 import { useVaultStore } from "@/state/vaultStore";
 import { useUiStore } from "@/state/uiStore";
+import { GuardiansView } from "@/components/dashboard/GuardiansView";
+import { HeartbeatView } from "@/components/dashboard/HeartbeatView";
+import { SettingsView } from "@/components/dashboard/SettingsView";
 
 const VaultDetailsPanel = dynamic(
   () => import("@/components/vault/VaultDetailsPanel").then((m) => m.VaultDetailsPanel),
@@ -38,6 +41,7 @@ export function DashboardView() {
   const error = useVaultStore((state) => state.error);
   const toggleCreateVault = useUiStore((state) => state.toggleCreateVault);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
   
   const metrics = useVaultStore(
     useShallow((state) => {
@@ -81,34 +85,11 @@ export function DashboardView() {
     setShowLoginModal(false);
   };
 
-  return (
-    <div className="flex min-h-screen bg-deep-navy text-text-primary pb-20 lg:pb-0">
-      <AppSidebar
-        principalText={principalText || null}
-        isAuthenticated={Boolean(principalText)}
-        loading={authLoading}
-        onAuthenticate={handleAuthAction}
-        onCreateVault={() => toggleCreateVault(true)}
-        metrics={metrics}
-      />
-      <div className="flex flex-1 flex-col">
-        <AppHeader
-          onRefresh={() => refresh()}
-          onCreateVault={() => toggleCreateVault(true)}
-          onAuthenticate={handleAuthAction}
-          principalText={principalText || null}
-          isAuthenticated={Boolean(principalText)}
-          loading={authLoading}
-          metrics={metrics}
-        />
-        <div className="flex-1 overflow-y-auto">
-          <OfflineBanner />
-          <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:px-8">
-            {error && (
-              <div className="rounded-card border border-error-red/40 bg-error-red/10 px-4 py-3 text-sm text-text-primary">
-                {error}
-              </div>
-            )}
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
+          <>
             <section>
               {!principalText && (
                 <div className="rounded-card border border-border-subtle bg-card-background/60 p-4 text-text-secondary">
@@ -136,14 +117,94 @@ export function DashboardView() {
             <section>
               <VaultDetailsPanel onRefresh={() => refresh()} />
             </section>
+          </>
+        );
+      case "vaults":
+        return (
+          <section>
+            <h2 className="font-display text-2xl mb-4">Vault Registry</h2>
+            {loading ? (
+              <div className="rounded-card border border-border-subtle p-6 text-text-secondary">
+                Loading vaults...
+              </div>
+            ) : (
+              <VaultGrid />
+            )}
+          </section>
+        );
+      case "guardians":
+        return (
+          <section>
+            <h2 className="font-display text-2xl mb-4">Guardian Network</h2>
+            <GuardiansView />
+          </section>
+        );
+      case "heartbeat":
+        return (
+          <section>
+            <h2 className="font-display text-2xl mb-4">Heartbeat Monitor</h2>
+            <HeartbeatView />
+          </section>
+        );
+      case "settings":
+        return (
+          <section>
+            <h2 className="font-display text-2xl mb-4">Operational Settings</h2>
+            <SettingsView />
+          </section>
+        );
+      default:
+        return (
+          <section>
+            <h2 className="font-display text-2xl mb-4 capitalize">{activeTab}</h2>
+            <div className="rounded-card border border-border-subtle p-6 text-text-secondary">
+              View not found.
+            </div>
+          </section>
+        );
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-deep-navy text-text-primary pb-20 lg:pb-0">
+      <AppSidebar
+        principalText={principalText || null}
+        isAuthenticated={Boolean(principalText)}
+        loading={authLoading}
+        onAuthenticate={handleAuthAction}
+        onCreateVault={() => toggleCreateVault(true)}
+        metrics={metrics}
+        activeTab={activeTab}
+        onNavigate={setActiveTab}
+      />
+      <div className="flex flex-1 flex-col">
+        <AppHeader
+          onRefresh={() => refresh()}
+          onCreateVault={() => toggleCreateVault(true)}
+          onAuthenticate={handleAuthAction}
+          principalText={principalText || null}
+          isAuthenticated={Boolean(principalText)}
+          loading={authLoading}
+          metrics={metrics}
+        />
+        <div className="flex-1 overflow-y-auto">
+          <OfflineBanner />
+          <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:px-8">
+            {error && (
+              <div className="rounded-card border border-error-red/40 bg-error-red/10 px-4 py-3 text-sm text-text-primary">
+                {error}
+              </div>
+            )}
+            {renderContent()}
           </main>
         </div>
         <CreateVaultWizard />
       </div>
       <MobileNav 
+        activeTab={activeTab}
         onNavigate={(id) => {
-          if (id === "vaults") window.scrollTo({ top: 0, behavior: "smooth" });
-          // Add other navigation logic here
+          setActiveTab(id);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }} 
       />
       <LoginModal
