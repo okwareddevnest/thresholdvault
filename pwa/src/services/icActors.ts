@@ -41,9 +41,17 @@ async function createAgent() {
     host: IC_HOST,
     identity: activeIdentity ?? undefined,
   });
-  if (process.env.NODE_ENV !== "production") {
+  
+  // Always fetch root key when not on mainnet
+  // The check process.env.NODE_ENV !== "production" is insufficient because
+  // we might be running a production build locally or on a testnet.
+  // We should check if the host is NOT the mainnet host.
+  // Note: Playground runs on Mainnet ('ic0.app'), so it correctly skips this.
+  const isMainnet = IC_HOST.includes("ic0.app");
+  
+  if (!isMainnet) {
     await agent.fetchRootKey().catch((err) => {
-      throw new Error(
+      console.warn(
         `Unable to fetch root key. Check IC host configuration. ${err}`,
       );
     });
