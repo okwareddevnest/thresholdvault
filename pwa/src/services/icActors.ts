@@ -1,6 +1,6 @@
 'use client';
 
-import { Actor, HttpAgent } from "@dfinity/agent";
+import { Actor, HttpAgent, type Identity } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { idlFactory as vaultIdl, type VaultActor } from "@/lib/ic/idl/vaultMgr";
 import {
@@ -23,9 +23,24 @@ const actorCache: Partial<{
   guardian: Promise<GuardianActor>;
   wallet: Promise<BitcoinWalletActor>;
 }> = {};
+let activeIdentity: Identity | null = null;
+
+function resetCache() {
+  actorCache.vault = undefined;
+  actorCache.guardian = undefined;
+  actorCache.wallet = undefined;
+}
+
+export function configureAgentIdentity(identity: Identity | null) {
+  activeIdentity = identity;
+  resetCache();
+}
 
 async function createAgent() {
-  const agent = new HttpAgent({ host: IC_HOST });
+  const agent = new HttpAgent({
+    host: IC_HOST,
+    identity: activeIdentity ?? undefined,
+  });
   if (process.env.NODE_ENV !== "production") {
     await agent.fetchRootKey().catch((err) => {
       throw new Error(

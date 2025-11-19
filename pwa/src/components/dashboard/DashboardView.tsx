@@ -1,64 +1,157 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useShallow } from "zustand/react/shallow";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { AppSidebar, type VaultMetrics } from "@/components/layout/AppSidebar";
+import { MobileNav } from "@/components/layout/MobileNav";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { VaultGrid } from "@/components/vault/VaultGrid";
-import { VaultDetailsPanel } from "@/components/vault/VaultDetailsPanel";
+import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuthClient } from "@/hooks/useAuthClient";
 import { useVaultData } from "@/hooks/useVaultData";
-import { CreateVaultWizard } from "@/components/forms/CreateVaultWizard";
 import { useVaultStore } from "@/state/vaultStore";
+import { useUiStore } from "@/state/uiStore";
+
+const VaultDetailsPanel = dynamic(
+  () => import("@/components/vault/VaultDetailsPanel").then((m) => m.VaultDetailsPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-card border border-border-subtle/60 bg-card-background/40 p-6 text-sm text-text-secondary">
+        Loading vault details…
+      </div>
+    ),
+  },
+);
+
+const CreateVaultWizard = dynamic(
+  () => import("@/components/forms/CreateVaultWizard").then((m) => m.CreateVaultWizard),
+  { ssr: false },
+);
 
 export function DashboardView() {
-  const { principalText } = useAuthClient();
+  const { principalText, login, logout, loading: authLoading } = useAuthClient();
   const { refresh } = useVaultData(principalText || null);
   const loading = useVaultStore((state) => state.loading);
   const error = useVaultStore((state) => state.error);
+  const toggleCreateVault = useUiStore((state) => state.toggleCreateVault);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  const metrics = useVaultStore(
+    useShallow((state) => {
+      const total = state.vaults.length;
+      const pendingInheritance = state.vaults.filter(
+        (vault) => vault.status === "InheritancePending",
+      ).length;
+      const executed = state.vaults.filter((vault) => vault.status === "Executed").length;
+      const active = Math.max(total - pendingInheritance - executed, 0);
+      const nextHeartbeat = state.vaults.reduce<number | null>((soonest, vault) => {
+        const dueValue = vault.heartbeatDueInSeconds ?? BigInt(0);
+        const due = Number(dueValue);
+        if (due <= 0) {
+          return soonest;
+        }
+        if (soonest === null || due < soonest) {
+          return due;
+        }
+        return soonest;
+      }, null);
+      return {
+        total,
+        active,
+        pendingInheritance,
+        executed,
+        nextHeartbeat,
+      } satisfies VaultMetrics;
+    })
+  );
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const handleAuthAction = () => {
+    if (principalText) {
+      logout();
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  const handleLogin = async () => {
+    await login();
+    setShowLoginModal(false);
+  };
 
   return (
-    <div className="min-h-screen bg-deep-navy text-text-primary">
-      <OfflineBanner />
-      <AppHeader onRefresh={() => refresh()} />
-      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
-        {error && (
-          <div className="rounded border border-error-red/40 bg-error-red/10 px-4 py-3 text-sm text-text-primary">
-            {error}
-          </div>
-        )}
-        <section>
-          {!principalText && (
-            <div className="rounded-card border border-border-subtle bg-card-background/60 p-4 text-text-secondary">
-              Sign in with Internet Identity to deploy on-chain vaults and sync guardians.
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-2xl">Vaults</h2>
-              <p className="text-text-secondary">
-                Autonomous inheritance timelines with guardian oversight.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4">
-            {loading ? (
-              <div className="rounded-card border border-border-subtle p-6 text-text-secondary">
-                Loading vaults...
+    <div className="flex min-h-screen bg-deep-navy text-text-primary pb-20 lg:pb-0">
+      <AppSidebar
+        principalText={principalText || null}
+        isAuthenticated={Boolean(principalText)}
+        loading={authLoading}
+        onAuthenticate={handleAuthAction}
+        onCreateVault={() => toggleCreateVault(true)}
+        metrics={metrics}
+      />
+      <div className="flex flex-1 flex-col">
+        <AppHeader
+          onRefresh={() => refresh()}
+          onCreateVault={() => toggleCreateVault(true)}
+          onAuthenticate={handleAuthAction}
+          principalText={principalText || null}
+          isAuthenticated={Boolean(principalText)}
+          loading={authLoading}
+          metrics={metrics}
+        />
+        <div className="flex-1 overflow-y-auto">
+          <OfflineBanner />
+          <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:px-8">
+            {error && (
+              <div className="rounded-card border border-error-red/40 bg-error-red/10 px-4 py-3 text-sm text-text-primary">
+                {error}
               </div>
-            ) : (
-              <VaultGrid />
             )}
-          </div>
-        </section>
-        <section>
-          <VaultDetailsPanel onRefresh={() => refresh()} />
-        </section>
-      </main>
-      <CreateVaultWizard />
+            <section>
+              {!principalText && (
+                <div className="rounded-card border border-border-subtle bg-card-background/60 p-4 text-text-secondary">
+                  Sign in with Internet Identity to deploy on-chain vaults and sync guardians.
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-2xl">Vaults</h2>
+                  <p className="text-text-secondary">
+                    Autonomous inheritance timelines with guardian oversight.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                {loading ? (
+                  <div className="rounded-card border border-border-subtle p-6 text-text-secondary">
+                    Loading vaults...
+                  </div>
+                ) : (
+                  <VaultGrid />
+                )}
+              </div>
+            </section>
+            <section>
+              <VaultDetailsPanel onRefresh={() => refresh()} />
+            </section>
+          </main>
+        </div>
+        <CreateVaultWizard />
+      </div>
+      <MobileNav 
+        onNavigate={(id) => {
+          if (id === "vaults") window.scrollTo({ top: 0, behavior: "smooth" });
+          // Add other navigation logic here
+        }} 
+      />
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+        loading={authLoading}
+      />
     </div>
   );
 }

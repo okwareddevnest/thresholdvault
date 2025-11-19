@@ -27,7 +27,8 @@ type ExecuteInheritanceResponse = record {
 };
 
 service : {
-  generate_vault_address : (GenerateVaultAddressArgs) -> (BitcoinAddressResponse);
-  execute_inheritance : (ExecuteInheritanceArgs) -> (ExecuteInheritanceResponse);
+  set_vault_manager : (principal) -> (variant { Ok : null; Err : text });
+  generate_vault_address : (GenerateVaultAddressArgs) -> (variant { Ok : BitcoinAddressResponse; Err : text });
+  execute_inheritance : (ExecuteInheritanceArgs) -> (variant { Ok : ExecuteInheritanceResponse; Err : text });
   wallet_view : (VaultId) -> (opt BitcoinAddressResponse) query;
 }

@@ -7,7 +7,7 @@ use bitcoin::{
     absolute::LockTime, transaction::Version, Address, Amount, Network as BtcNetwork, OutPoint, ScriptBuf, Sequence,
     Transaction, TxIn, TxOut, Txid, Witness,
 };
-use candid::CandidType;
+use candid::{CandidType, Principal};
 use ic_cdk::api::{self};
 use ic_cdk::bitcoin_canister::{
     bitcoin_get_current_fee_percentiles, bitcoin_get_utxos, bitcoin_send_transaction, GetCurrentFeePercentilesRequest,
@@ -51,6 +51,7 @@ mod wasm_rand_shim {
 #[derive(Default, Clone, CandidType, Deserialize, Serialize)]
 struct VaultWalletState {
     wallets: BTreeMap<VaultId, VaultWallet>,
+    vault_manager: Option<Principal>,
 }
 
 #[derive(Clone, CandidType, Deserialize, Serialize)]
@@ -120,6 +121,8 @@ enum BitcoinWalletError {
     Crypto(String),
     #[error("bitcoin network error: {0}")]
     Network(String),
+    #[error("unauthorized caller: {0}")]
+    Unauthorized(Principal),
 }
 
 impl From<BitcoinWalletError> for String {
@@ -148,9 +151,33 @@ fn post_upgrade() {
 }
 
 #[update]
+fn set_vault_manager(manager: Principal) -> Result<(), String> {
+    let caller = api::msg_caller();
+    // Only allow controller to set the manager
+    if !api::is_controller(&caller) {
+        return Err(BitcoinWalletError::Unauthorized(caller).to_string());
+    }
+    mutate_state(|state| {
+        state.vault_manager = Some(manager);
+    });
+    Ok(())
+}
+
+#[update]
 async fn generate_vault_address(
     args: GenerateVaultAddressArgs,
 ) -> Result<BitcoinAddressResponse, String> {
+    let caller = api::msg_caller();
+    with_state(|state| {
+        if let Some(manager) = state.vault_manager {
+            if manager != caller {
+                return Err(BitcoinWalletError::Unauthorized(caller));
+            }
+        }
+        Ok(())
+    })
+    .map_err(String::from)?;
+
     if let Some(existing) = with_state(|state| state.wallets.get(&args.vault_id).cloned()) {
         return Ok(BitcoinAddressResponse {
             address: existing.address,
@@ -205,6 +232,17 @@ async fn generate_vault_address(
 async fn execute_inheritance(
     args: ExecuteInheritanceArgs,
 ) -> Result<ExecuteInheritanceResponse, String> {
+    let caller = api::msg_caller();
+    with_state(|state| {
+        if let Some(manager) = state.vault_manager {
+            if manager != caller {
+                return Err(BitcoinWalletError::Unauthorized(caller));
+            }
+        }
+        Ok(())
+    })
+    .map_err(String::from)?;
+
     ensure_valid_heirs(&args.heirs)?;
     let wallet = with_state(|state| {
         state

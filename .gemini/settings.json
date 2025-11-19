@@ -1,0 +1,11 @@
+{
+  "context": {
+    "fileFiltering": {
+      "respectGeminiIgnore": false,
+      "enableRecursiveFileSearch": false
+    }
+  },
+  "general": {
+    "previewFeatures": true
+  }
+}

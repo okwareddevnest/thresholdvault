@@ -40,6 +40,7 @@ thread_local! {
 #[derive(Clone, Default, CandidType, Deserialize, Serialize)]
 struct GuardianManagerState {
     vaults: BTreeMap<VaultId, VaultGuardianSet>,
+    vault_manager: Option<Principal>,
 }
 
 #[derive(Clone, CandidType, Deserialize, Serialize)]
@@ -195,8 +196,28 @@ fn post_upgrade() {
 }
 
 #[update]
+fn set_vault_manager(manager: Principal) -> Result<(), String> {
+    let caller = api::msg_caller();
+    if !api::is_controller(&caller) {
+        return Err(GuardianError::Unauthorized(caller).to_string());
+    }
+    mutate_state(|state| {
+        state.vault_manager = Some(manager);
+    });
+    Ok(())
+}
+
+#[update]
 async fn register_guardians(args: RegisterGuardiansArgs) -> Vec<GuardianRecord> {
     let caller = api::msg_caller();
+    with_state(|state| {
+        if let Some(manager) = state.vault_manager {
+            if manager != caller {
+                ic_cdk::trap(&GuardianError::Unauthorized(caller).to_string());
+            }
+        }
+    });
+
     if caller != args.owner {
         ic_cdk::trap(&GuardianError::Unauthorized(caller).to_string());
     }
@@ -356,6 +377,21 @@ fn guardian_by_hash(args: AcceptGuardianArgs) -> Option<GuardianRecord> {
                     .find(|g| g.email_hash == args.email_hash)
                     .map(guardian_record)
             })
+    })
+}
+
+#[query]
+fn list_guardian_vaults() -> Vec<VaultId> {
+    let caller = api::msg_caller();
+    with_state(|state| {
+        state
+            .vaults
+            .iter()
+            .filter(|(_, vault)| {
+                vault.guardians.iter().any(|g| g.principal_id == Some(caller))
+            })
+            .map(|(id, _)| *id)
+            .collect()
     })
 }
 

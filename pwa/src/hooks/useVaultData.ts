@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from "react";
 import useSWR from "swr";
 import { Principal } from "@dfinity/principal";
 import { listVaults } from "@/services/vaultService";
@@ -24,13 +25,42 @@ export function useVaultData(principalText: string | null) {
     },
   );
 
-  setLoading(isLoading);
-  if (error) {
-    setError(error.message);
-  }
-  if (data) {
-    setVaults(data);
-  }
+  useEffect(() => {
+    if (!principalText) {
+      setVaults([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(isLoading);
+  }, [isLoading, principalText, setLoading, setVaults, setError]);
+
+  useEffect(() => {
+    if (error) {
+      setError(error.message);
+    } else {
+      setError(null);
+    }
+  }, [error, setError]);
+
+  useEffect(() => {
+    if (data) {
+      // Simple check to avoid unnecessary store updates if data hasn't changed
+      // This helps prevent render loops if the parent component re-renders
+      const currentVaults = useVaultStore.getState().vaults;
+      const isSame = 
+        currentVaults.length === data.length && 
+        JSON.stringify(currentVaults, (key, value) => 
+          typeof value === 'bigint' ? value.toString() : value
+        ) === JSON.stringify(data, (key, value) => 
+          typeof value === 'bigint' ? value.toString() : value
+        );
+      
+      if (!isSame) {
+        setVaults(data);
+      }
+    }
+  }, [data, setVaults]);
 
   return {
     refresh: mutate,

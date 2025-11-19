@@ -16,7 +16,7 @@ export interface GuardianRecord {
   emailHash: Uint8Array | number[];
   alias: string;
   status: GuardianStatus;
-  principalId: string | null;
+  principalId: import("@dfinity/principal").Principal | null;
 }
 
 export interface VaultSummary {
@@ -40,6 +40,7 @@ export interface VaultStatusResponse {
 export interface GuardianSubmissionResult {
   submitted: bigint;
   thresholdMet: boolean;
+  threshold_met?: boolean; // Handle potential casing differences
 }
 
 export interface CreateVaultPayload {
@@ -53,4 +54,10 @@ export interface CreateVaultPayload {
 export interface ExecuteInheritanceResponse {
   txId: string;
   broadcastAt: bigint;
+}
+
+export interface ShareSubmissionReceipt {
+  vaultId: bigint;
+  submittedAt: bigint;
+  remainingRequired: bigint;
 }

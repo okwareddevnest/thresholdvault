@@ -286,9 +286,9 @@ persistent actor class VaultMgr(
       summarize(updated);
     };
 
-    public shared ({ caller }) func execute_inheritance(vaultId : VaultId) : async ExecuteInheritanceResponse {
+    public shared ({ caller = _ }) func execute_inheritance(vaultId : VaultId) : async ExecuteInheritanceResponse {
       let vault = readVault(vaultId);
-      ensureCallerIsOwner(caller, vault);
+      // Anyone can trigger execution if conditions are met
       if (vault.status != #InheritancePending) {
         Debug.trap("VAULT_NOT_PENDING");
       };

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AuthClient } from "@dfinity/auth-client";
 import { Principal } from "@dfinity/principal";
+import { configureAgentIdentity } from "@/services/icActors";
 
 let sharedClient: AuthClient | null = null;
 const subscribers = new Set<(principal: Principal | null) => void>();
@@ -24,11 +25,18 @@ export function useAuthClient() {
 
   useEffect(() => {
     let mounted = true;
-    ensureClient().then((client) => {
+    ensureClient().then(async (client) => {
       if (!mounted) return;
       setAuthClient(client);
-      const identityPrincipal = client.getIdentity().getPrincipal();
-      setPrincipal(identityPrincipal);
+      const authenticated = await client.isAuthenticated();
+      if (authenticated) {
+        const identity = client.getIdentity();
+        configureAgentIdentity(identity);
+        setPrincipal(identity.getPrincipal());
+      } else {
+        configureAgentIdentity(null);
+        setPrincipal(null);
+      }
       setLoading(false);
     });
     const listener = (value: Principal | null) => {
@@ -49,9 +57,10 @@ export function useAuthClient() {
     return client.login({
       identityProvider:
         process.env.NEXT_PUBLIC_II_URL ??
-        "https://identity.ic0.app/#authorize",
+        "https://id.ai",
       onSuccess: async () => {
         const identity = client.getIdentity();
+        configureAgentIdentity(identity);
         notify(identity.getPrincipal());
       },
     });
@@ -60,13 +69,17 @@ export function useAuthClient() {
   const logout = useCallback(async () => {
     const client = authClient ?? (await ensureClient());
     await client.logout();
+    configureAgentIdentity(null);
     notify(null);
   }, [authClient]);
 
   return {
     authClient,
     principal,
-    principalText: principal?.toText() ?? "",
+    principalText:
+      principal && principal.toText() !== Principal.anonymous().toText()
+        ? principal.toText()
+        : "",
     login,
     logout,
     loading,

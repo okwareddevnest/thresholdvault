@@ -47,10 +47,12 @@ type ResultGuardian = variant { ok : GuardianRecord; err : text };
 type ResultReceipt = variant { ok : ShareSubmissionReceipt; err : text };
 
 service : {
+  set_vault_manager : (principal) -> (variant { Ok : null; Err : text });
   register_guardians : (RegisterGuardiansArgs) -> (vec GuardianRecord);
   accept_invitation : (AcceptGuardianArgs) -> (ResultGuardian);
   submit_guardian_share : (SubmitShareArgs) -> (ResultReceipt);
   guardian_threshold_status : (VaultId) -> (GuardianSubmissionResult);
   list_guardians : (VaultId) -> (vec GuardianRecord) query;
+  list_guardian_vaults : () -> (vec VaultId) query;
   guardian_by_hash : (AcceptGuardianArgs) -> (opt GuardianRecord) query;
 }

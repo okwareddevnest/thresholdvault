@@ -8,7 +8,7 @@ export function VaultGrid() {
 
   if (!vaults.length) {
     return (
-      <div className="rounded-card border border-dashed border-border-subtle p-8 text-center text-text-secondary">
+      <div className="rounded-card border border-border-subtle/80 bg-card-background/40 p-8 text-center text-text-secondary">
         No vaults yet. Create your first autonomous inheritance vault to get started.
       </div>
     );

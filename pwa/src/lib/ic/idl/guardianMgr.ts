@@ -69,6 +69,7 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
       [I.Vec(GuardianRecordIdl)],
       ["query"],
     ),
+    list_guardian_vaults: I.Func([], [I.Vec(I.Nat64)], ["query"]),
     guardian_by_hash: I.Func(
       [AcceptGuardianArgs],
       [I.Opt(GuardianRecordIdl)],
@@ -97,6 +98,7 @@ export type GuardianActor = {
     vaultId: bigint,
   ) => Promise<GuardianSubmissionResult>;
   list_guardians: (vaultId: bigint) => Promise<GuardianRecord[]>;
+  list_guardian_vaults: () => Promise<bigint[]>;
   guardian_by_hash: (
     payload: { vaultId: bigint; emailHash: number[] },
   ) => Promise<GuardianRecord | null>;

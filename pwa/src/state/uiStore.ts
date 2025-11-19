@@ -8,18 +8,25 @@ type UiState = {
   onboardingComplete: boolean;
   offline: boolean;
   showCreateVault: boolean;
+  hydrated: boolean;
+  hydrateOnboarding: () => void;
   setOnboardingComplete: (value: boolean) => void;
   setOffline: (value: boolean) => void;
   toggleCreateVault: (value: boolean) => void;
 };
 
 export const useUiStore = create<UiState>((set) => ({
-  onboardingComplete:
-    typeof window !== "undefined"
-      ? localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1"
-      : false,
+  onboardingComplete: false,
   offline: false,
   showCreateVault: false,
+  hydrated: false,
+  hydrateOnboarding: () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+    set({ onboardingComplete: stored, hydrated: true });
+  },
   setOnboardingComplete: (value) => {
     if (typeof window !== "undefined") {
       if (value) {
@@ -28,7 +35,7 @@ export const useUiStore = create<UiState>((set) => ({
         localStorage.removeItem(ONBOARDING_STORAGE_KEY);
       }
     }
-    set({ onboardingComplete: value });
+    set({ onboardingComplete: value, hydrated: true });
   },
   setOffline: (value) => set({ offline: value }),
   toggleCreateVault: (value) => set({ showCreateVault: value }),
